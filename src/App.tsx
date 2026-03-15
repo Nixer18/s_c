@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from "motion/react";
+import { useRef, useMemo, Suspense, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useRef, useMemo, Suspense, useEffect } from "react";
 import * as THREE from "three";
 import { MeshTransmissionMaterial, Environment, Float } from "@react-three/drei";
 import { EffectComposer, ChromaticAberration, Noise } from "@react-three/postprocessing";
@@ -342,7 +342,27 @@ function RefractingSphere() {
 }
 
 export default function App() {
-  const navItems = ["WORK", "MANIFESTO", "SAIGON SOULS", "TEAM", "CONTACT"];
+  const [activeLang, setActiveLang] = useState("EN");
+
+  const content = {
+    "I": {
+      hero: "Curando l'Estetica Digitale",
+      nav: ["LAVORI", "TEAM", "CONTATTI"]
+    },
+    "EN": {
+      hero: "Curating Digital Aesthetics",
+      nav: ["WORK", "TEAM", "CONTACT"]
+    },
+    "VN": {
+      hero: "Giám tuyển Thẩm mỹ Kỹ thuật số",
+      nav: ["CÔNG VIỆC", "NHÓM", "LIÊN HỆ"]
+    },
+    "中文": {
+      hero: "策劃數字美學",
+      nav: ["作品", "團隊", "聯繫"]
+    }
+  };
+
   const languages = ["I", "EN", "VN", "中文"];
   const cursorRef = useRef<HTMLDivElement>(null);
 
@@ -391,8 +411,7 @@ export default function App() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="flex items-baseline gap-2"
         >
-          <span className="text-xl font-bold tracking-tighter uppercase">monopo</span>
-          <span className="text-xs opacity-60 tracking-widest uppercase">saigon</span>
+          <span className="text-xl font-bold tracking-tighter uppercase">COREXIS</span>
         </motion.div>
 
         <div className="flex flex-col items-end gap-8">
@@ -403,10 +422,11 @@ export default function App() {
             transition={{ delay: 0.5, duration: 1 }}
             className="flex gap-4 text-[10px] tracking-[0.2em] font-medium"
           >
-            {languages.map((lang, i) => (
+            {languages.map((lang) => (
               <button 
                 key={lang} 
-                className={`hover:opacity-100 transition-opacity ${i === 1 ? 'opacity-100' : 'opacity-40'}`}
+                onClick={() => setActiveLang(lang)}
+                className={`hover:opacity-100 transition-opacity ${activeLang === lang ? 'opacity-100' : 'opacity-40'}`}
               >
                 {lang}
               </button>
@@ -415,14 +435,19 @@ export default function App() {
 
           {/* Navigation */}
           <nav className="hidden md:flex flex-col items-end gap-3">
-            {navItems.map((item, i) => (
+            {content[activeLang as keyof typeof content].nav.map((item, i) => (
               <motion.a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + i * 0.1, duration: 0.8 }}
-                className="text-[11px] tracking-[0.25em] font-medium opacity-60 hover:opacity-100 transition-opacity"
+                whileHover={{ x: -8, opacity: 1 }}
+                transition={{ 
+                  delay: 0.6 + i * 0.1, 
+                  duration: 0.8,
+                  x: { type: "spring", stiffness: 400, damping: 30 }
+                }}
+                className="text-[11px] tracking-[0.25em] font-medium opacity-60 transition-opacity"
               >
                 {item}
               </motion.a>
@@ -433,14 +458,39 @@ export default function App() {
 
       {/* Main Content */}
       <main className="relative z-10 flex items-center justify-center min-h-screen px-6 pointer-events-none">
-        <motion.h1 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-          className="text-4xl md:text-6xl lg:text-8xl font-medium tracking-tight text-center max-w-5xl leading-[1.1] drop-shadow-2xl"
-        >
-          United, Unbound
-        </motion.h1>
+        <div className="flex flex-col items-center gap-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`welcome-${activeLang}`}
+              initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(8px)" }}
+              transition={{ 
+                duration: 0.8, 
+                ease: [0.4, 0, 0.2, 1] 
+              }}
+              className="text-[10px] md:text-xs tracking-[0.5em] uppercase opacity-40 font-light"
+            >
+              Welcome to COREXIS
+            </motion.div>
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.h1 
+              key={activeLang}
+              initial={{ opacity: 0, y: 20, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -20, filter: "blur(12px)" }}
+              transition={{ 
+                duration: 0.9, 
+                ease: [0.4, 0, 0.2, 1] 
+              }}
+              className="text-4xl md:text-6xl lg:text-8xl font-medium tracking-tight text-center max-w-5xl leading-[1.1] drop-shadow-2xl"
+            >
+              {content[activeLang as keyof typeof content].hero}
+            </motion.h1>
+          </AnimatePresence>
+        </div>
       </main>
 
       {/* Footer / Scroll Indicator */}
@@ -476,18 +526,6 @@ export default function App() {
           </svg>
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.8, duration: 1 }}
-          className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden"
-        >
-          <motion.div 
-            animate={{ x: [-48, 48] }}
-            transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-            className="w-1/2 h-full bg-white/40"
-          />
-        </motion.div>
       </footer>
 
       {/* Background Subtle Grain/Texture (Overlay) */}
